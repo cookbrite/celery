@@ -1262,7 +1262,8 @@ class chord(Signature):
                 yield task if value is None else value
 
     def __length_hint__(self):
-        tasks = self.tasks.tasks if isinstance(self.tasks, group) else self.tasks
+        tasks = (self.tasks.tasks if isinstance(self.tasks, group)
+                 else self.tasks)
         return sum(self._traverse_tasks(tasks, 1))
 
     def run(self, header, body, partial_args, app=None, interval=None,
