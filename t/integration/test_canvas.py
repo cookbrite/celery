@@ -22,11 +22,10 @@ class test_chain:
             add.s(2, 2) | (
                 add.s(4) | add.s(8) | add.s(16)
             ) |
-            group(add.s(i) for i in range(4)) |
-            add_to_all.s(32)
+            group(add.s(i) for i in range(4))
         )
         res = c()
-        assert res.get(timeout=TIMEOUT) == [64, 65, 66, 67]
+        assert res.get(timeout=TIMEOUT) == [32, 33, 34, 35]
 
     @flaky
     def test_parent_ids(self, manager, num=10):
