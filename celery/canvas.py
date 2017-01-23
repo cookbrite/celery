@@ -1384,7 +1384,7 @@ def maybe_signature(d, app=None, clone=False):
             if clone:
                 d = d.clone()
         elif isinstance(d, dict):
-            d = signature(d)
+            d = signature(d, app=app)
 
         if app is not None:
             d._app = app
