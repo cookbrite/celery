@@ -948,9 +948,10 @@ class group(Signature):
 
     def __init__(self, *tasks, **options):
         if len(tasks) == 1:
-            tasks = tasks[0]
-            if isinstance(tasks, group):
-                tasks = tasks.tasks
+            if isinstance(tasks[0], (list, tuple, _regen)):
+                tasks = tasks[0]
+            elif isinstance(tasks[0], group):
+                tasks = tasks[0].tasks
             if not isinstance(tasks, _regen):
                 tasks = regen(tasks)
         Signature.__init__(
