@@ -270,8 +270,10 @@ class RedisBackend(base.BaseKeyValueStoreBackend, async.AsyncBackendMixin):
             callback = maybe_signature(request.chord, app=app)
             total = callback['chord_size'] + totaldiff
             if readycount == total:
-                logger.debug("Unlocking chord (readycount=%s, chord_size=%s, totaldiff=%s)",
-                             readycount, callback['chord_size'], totaldiff)
+                logger.debug("Unlocking chord (readycount=%s, chord_size=%s, totaldiff=%s, "
+                             "task=%s, task_id=%s, group_id=%s, parent_id=%s, root_id=%s): %r",
+                             readycount, callback['chord_size'], totaldiff,
+                             request.task, request.id, request.group, request.parent_id, request.root_id, request.chord)
                 decode, unpack = self.decode, self._unpack_chord_result
                 with client.pipeline() as pipe:
                     resl, _, _ = pipe               \
@@ -289,8 +291,10 @@ class RedisBackend(base.BaseKeyValueStoreBackend, async.AsyncBackendMixin):
                         ChordError('Callback error: {0!r}'.format(exc)),
                     )
             else:
-                logger.debug("Not unlocking chord (readycount=%s, chord_size=%s, totaldiff=%s)",
-                             readycount, callback['chord_size'], totaldiff)
+                logger.debug("Not unlocking chord (readycount=%s, chord_size=%s, totaldiff=%s, "
+                             "task=%s, task_id=%s, group_id=%s, parent_id=%s, root_id=%s): %r",
+                             readycount, callback['chord_size'], totaldiff,
+                             request.task, request.id, request.group, request.parent_id, request.root_id, request.chord)
         except ChordError as exc:
             logger.exception('Chord %r raised: %r', request.group, exc)
             return self.chord_error_from_stack(callback, exc)
