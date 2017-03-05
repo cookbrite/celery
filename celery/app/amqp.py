@@ -546,17 +546,33 @@ class AMQP(object):
                     declare=declare, headers=headers2,
                     properties=kwargs, retry_policy=retry_policy,
                 )
-            ret = producer.publish(
-                body,
-                exchange=exchange,
-                routing_key=routing_key,
-                serializer=serializer or default_serializer,
-                compression=compression or default_compressor,
-                retry=retry, retry_policy=_rp,
-                delivery_mode=delivery_mode, declare=declare,
-                headers=headers2,
-                **properties
-            )
+            try:
+                ret = producer.publish(
+                    body,
+                    exchange=exchange,
+                    routing_key=routing_key,
+                    serializer=serializer or default_serializer,
+                    compression=compression or default_compressor,
+                    retry=retry, retry_policy=_rp,
+                    delivery_mode=delivery_mode, declare=declare,
+                    headers=headers2,
+                    **properties
+                )
+            except Exception as e:
+                import logging
+                logger = logging.getLogger('celery')
+                logger.exception(
+                    'send_task_message: failed in publishing message (task=%s, task_id=%s, parent_id=%s, root_id=%s): %r',
+                    message.headers.get('task'), message.headers.get('id'),
+                    message.headers.get('parent_id'), message.headers.get('root_id'), e)
+                raise
+            else:
+                import logging
+                logger = logging.getLogger('celery')
+                logger.debug(
+                    'send_task_message: succeeded in publishing message (task=%s, task_id=%s, parent_id=%s, root_id=%s)',
+                    message.headers.get('task'), message.headers.get('id'),
+                    message.headers.get('parent_id'), message.headers.get('root_id'))
             if after_receivers:
                 send_after_publish(sender=name, body=body, headers=headers2,
                                    exchange=exchange, routing_key=routing_key)
