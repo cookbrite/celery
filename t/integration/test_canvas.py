@@ -4,7 +4,7 @@ from celery import chain, chord, group
 from celery.exceptions import TimeoutError
 from celery.result import AsyncResult, GroupResult
 from .conftest import flaky
-from .tasks import add, add_replaced, add_to_all, collect_ids, ids
+from .tasks import add, add_replaced, add_to_all, collect_ids, ids, echo, a
 
 TIMEOUT = 120
 
@@ -129,6 +129,54 @@ class test_chord:
             ids.si(i=51)
         )
         self.assert_parentids_chord(g(), expected_root_id)
+
+    @flaky
+    def test_chord_of_chords_with_replacement(self, manager):
+        # TODO: make this reuse existing tasks as much as possible, productionize, and submit upstream PR
+        if not manager.app.conf.result_backend.startswith('redis'):
+            raise pytest.skip('Requires redis result backend.')
+
+        res = a.delay()
+        assert res.get(timeout=TIMEOUT) == 'a|b\naa|bb'
+
+    def test_chord_of_chords_no_replacement(self, manager):
+        # TODO: make this reuse existing tasks as much as possible, productionize, and submit upstream PR
+        # Repro from https://github.com/celery/celery/pull/4301, but note that
+        # our modification to freeze() fixes both the replaced-task case, and
+        # the repro below, rendering the suggested change to apply_async() by
+        # zpl redundant.
+
+        if not manager.app.conf.result_backend.startswith('redis'):
+            raise pytest.skip('Requires redis result backend.')
+
+        ch = chord(
+            [
+                chord(
+                    [
+                        chord([echo.si(name='111'), echo.si(name='112'), ], body=echo.si(name='11_')),
+                        chord([echo.si(name='121'), echo.si(name='122'), ], body=echo.si(name='12_')),
+                    ],
+                    body=echo.si(name='1_end')
+                ),
+                chord(
+                    [
+                        chord([echo.si(name='211'), echo.si(name='212'), ], body=echo.si(name='21_')),
+                        chord([echo.si(name='221'), echo.si(name='222'), ], body=echo.si(name='22_')),
+                    ],
+                    body=echo.si(name='2_end')
+                ),
+                chord(
+                    [
+                        chord([echo.si(name='311'), echo.si(name='312'), ], body=echo.si(name='31_')),
+                        chord([echo.si(name='321'), echo.si(name='322'), ], body=echo.si(name='32_')),
+                    ],
+                    body=echo.si(name='3_end')
+                ),
+            ],
+            body=echo.si(name='end')
+        )
+        result = ch.apply_async()
+        print(result.get(timeout=TIMEOUT))
 
     def assert_parentids_chord(self, res, expected_root_id):
         assert isinstance(res, AsyncResult)

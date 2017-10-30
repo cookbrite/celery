@@ -1201,6 +1201,10 @@ class chord(Signature):
                root_id=None, parent_id=None):
         # pylint: disable=redefined-outer-name
         #   XXX chord is also a class in outer scope.
+        if group_id:
+            self.options['group_id'] = group_id
+        if chord:
+            self.options['chord'] = chord
         if not isinstance(self.tasks, group):
             self.tasks = group(self.tasks, app=self.app)
         header_result = self.tasks.freeze(

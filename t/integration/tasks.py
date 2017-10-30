@@ -1,10 +1,53 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, unicode_literals
 from time import sleep
+
+from celery import chain
 from celery import shared_task, group
 from celery.utils.log import get_task_logger
 
 logger = get_task_logger(__name__)
+
+
+@shared_task(bind=True)
+def echo(self, name):
+    print(name)
+    return name
+
+
+@shared_task(bind=True)
+def a(self):
+    subtasks = [b.s(n) for n in (1, 2)]
+    ch = chain(
+        group(*subtasks),
+        e.s()
+    )
+    raise self.replace(ch)
+
+
+@shared_task(bind=True)
+def b(self, n):
+    subtasks = [c.s(s, n) for s in ('a', 'b')]
+    ch = chain(
+        group(*subtasks),
+        d.s()
+    )
+    raise self.replace(ch)
+
+
+@shared_task(bind=True)
+def c(self, s, n):
+    return s * n
+
+
+@shared_task(bind=True)
+def d(self, c_results):
+    return '|'.join(c_results)
+
+
+@shared_task(bind=True)
+def e(self, d_results):
+    return '\n'.join(d_results)
 
 
 @shared_task
